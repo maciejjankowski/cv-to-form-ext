@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>CV AutoFill</title>
+  <style>
+    body {
+      width: 400px;
+      font-family: sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    #container {
+      padding: 15px;
+    }
+    h1 {
+      font-size: 18px;
+      margin: 0 0 15px 0;
+      color: #333;
+    }
+    .section {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+      font-size: 13px;
+      color: #555;
+    }
+    input[type="file"] {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+    input[type="text"], input[type="number"], select {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      box-sizing: border-box;
+      font-size: 13px;
+    }
+    textarea {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      box-sizing: border-box;
+      font-size: 12px;
+      resize: vertical;
+      min-height: 80px;
+    }
+    button {
+      width: 100%;
+      padding: 10px;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    button:hover {
+      background: #45a049;
+    }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    #status {
+      margin-top: 10px;
+      padding: 10px;
+      font-size: 13px;
+      border-radius: 4px;
+      display: none;
+    }
+    #status.success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+      display: block;
+    }
+    #status.error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+      display: block;
+    }
+    #status.info {
+      background: #d1ecf1;
+      color: #0c5460;
+      border: 1px solid #bee5eb;
+      display: block;
+    }
+    /* Upsell Banner */
+    #upsellBanner {
+      display: none;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      color: #fff;
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 15px;
+      position: relative;
+    }
+    #upsellBanner.show {
+      display: block;
+    }
+    #upsellBanner h3 {
+      margin: 0 0 8px 0;
+      font-size: 14px;
+      color: #FFD700;
+    }
+    #upsellBanner p {
+      margin: 0 0 10px 0;
+      font-size: 12px;
+      line-height: 1.4;
+      color: #ccc;
+    }
+    #upsellBanner .cta-btn {
+      display: inline-block;
+      background: #E31E24;
+      color: #fff;
+      padding: 8px 16px;
+      border-radius: 4px;
+      text-decoration: none;
+      font-size: 12px;
+      font-weight: bold;
+    }
+    #upsellBanner .cta-btn:hover {
+      background: #c41a1f;
+    }
+    #upsellBanner .dismiss {
+      position: absolute;
+      top: 8px;
+      right: 10px;
+      background: none;
+      border: none;
+      color: #666;
+      cursor: pointer;
+      font-size: 16px;
+      padding: 0;
+      width: auto;
+      margin: 0;
+    }
+    #upsellBanner .email-form {
+      margin-top: 10px;
+    }
+    #upsellBanner .email-form input {
+      width: calc(100% - 70px);
+      padding: 6px 8px;
+      border: none;
+      border-radius: 4px 0 0 4px;
+      font-size: 12px;
+    }
+    #upsellBanner .email-form button {
+      width: 60px;
+      padding: 6px 8px;
+      background: #FFD700;
+      color: #1a1a2e;
+      border: none;
+      border-radius: 0 4px 4px 0;
+      font-size: 11px;
+      font-weight: bold;
+      cursor: pointer;
+      margin: 0;
+    }
+    /* Support/Payment Section */
+    #supportSection {
+      margin-top: 15px;
+      padding: 15px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      border: 1px solid #e9ecef;
+    }
+    #supportSection h4 {
+      margin: 0 0 10px 0;
+      font-size: 13px;
+      color: #333;
+    }
+    .avatar-container {
+      text-align: center;
+      margin: 15px 0;
+      position: relative;
+    }
+    .avatar {
+      font-size: 48px;
+      transition: all 0.3s ease;
+      display: inline-block;
+    }
+    .avatar.happy { transform: scale(1.1); }
+    .avatar.wink { animation: wink 0.5s ease; }
+    .rainbow {
+      display: none;
+      position: absolute;
+      top: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 24px;
+      animation: rainbow-float 1s ease infinite;
+    }
+    .rainbow.show { display: block; }
+    @keyframes wink {
+      0%, 100% { transform: scale(1.1); }
+      50% { transform: scale(1.2) rotate(5deg); }
+    }
+    @keyframes rainbow-float {
+      0%, 100% { transform: translateX(-50%) translateY(0); }
+      50% { transform: translateX(-50%) translateY(-5px); }
+    }
+    .amount-input {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin: 10px 0;
+    }
+    .amount-input input {
+      width: 80px;
+      padding: 8px;
+      font-size: 18px;
+      font-weight: bold;
+      text-align: center;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      margin: 0;
+    }
+    .amount-input input:focus {
+      border-color: #4CAF50;
+      outline: none;
+    }
+    .amount-input span {
+      font-size: 14px;
+      color: #666;
+    }
+    .pay-btn {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 10px;
+    }
+    .pay-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+    .pay-btn:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+    .min-note {
+      font-size: 11px;
+      color: #999;
+      text-align: center;
+      margin-top: 5px;
+    }
+    #discordSection {
+      display: none;
+      margin-top: 15px;
+      padding: 12px;
+      background: linear-gradient(135deg, #5865F2 0%, #7289da 100%);
+      border-radius: 8px;
+      text-align: center;
+    }
+    #discordSection.show { display: block; }
+    #discordSection a {
+      color: white;
+      text-decoration: none;
+      font-weight: bold;
+      font-size: 13px;
+    }
+    #discordSection p {
+      color: rgba(255,255,255,0.8);
+      font-size: 11px;
+      margin: 5px 0 0 0;
+    }
+    .activation-section {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid #e9ecef;
+    }
+    .activation-section input {
+      width: calc(100% - 70px);
+      padding: 6px 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px 0 0 4px;
+      font-size: 12px;
+      margin: 0;
+    }
+    .activation-section button {
+      width: 60px;
+      padding: 6px 8px;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 0 4px 4px 0;
+      font-size: 11px;
+      cursor: pointer;
+      margin: 0;
+    }
+    /* Rainbow mode for 369+ PLN supporters */
+    @keyframes rainbow-bg {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    body.rainbow-mode input[type="text"],
+    body.rainbow-mode input[type="number"],
+    body.rainbow-mode input[type="email"],
+    body.rainbow-mode input[type="file"],
+    body.rainbow-mode select,
+    body.rainbow-mode textarea {
+      background: linear-gradient(124deg, #ff2400, #e81d1d, #e8b71d, #e3e81d, #1de840, #1ddde8, #2b1de8, #dd00f3, #dd00f3);
+      background-size: 400% 400%;
+      animation: rainbow-bg 8s ease infinite;
+      color: #000;
+      font-weight: bold;
+      border: 2px solid rgba(255,255,255,0.5);
+    }
+    body.rainbow-mode input::placeholder {
+      color: rgba(0,0,0,0.6);
+    }
+    .rainbow-badge {
+      display: none;
+      background: linear-gradient(124deg, #ff2400, #e81d1d, #e8b71d, #1de840, #1ddde8, #2b1de8, #dd00f3);
+      background-size: 400% 400%;
+      animation: rainbow-bg 3s ease infinite;
+      color: white;
+      font-size: 10px;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-weight: bold;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+      margin-left: 8px;
+    }
+    body.rainbow-mode .rainbow-badge {
+      display: inline-block;
+    }
+    .cv-info {
+      font-size: 12px;
+      color: #666;
+      padding: 8px;
+      background: #f5f5f5;
+      border-radius: 4px;
+      margin-bottom: 10px;
+    }
+    .options-toggle {
+      background: #2196F3;
+      margin-bottom: 10px;
+    }
+    .options-toggle:hover {
+      background: #0b7dda;
+    }
+    #advancedOptions {
+      display: none;
+      padding: 10px;
+      background: #f9f9f9;
+      border-radius: 4px;
+      margin-bottom: 10px;
+    }
+    #advancedOptions.show {
+      display: block;
+    }
+    /* Feedback Section */
+    #feedbackSection {
+      margin-top: 15px;
+      border-top: 1px solid #eee;
+      padding-top: 10px;
+    }
+    .feedback-toggle {
+      width: 100%;
+      padding: 8px;
+      background: #607D8B;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .feedback-toggle:hover {
+      background: #546E7A;
+    }
+    .feedback-form {
+      display: none;
+      margin-top: 10px;
+      padding: 10px;
+      background: #f5f5f5;
+      border-radius: 4px;
+    }
+    .feedback-form.show {
+      display: block;
+    }
+    .feedback-form select,
+    .feedback-form input,
+    .feedback-form textarea {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      box-sizing: border-box;
+      font-size: 12px;
+    }
+    .feedback-form textarea {
+      resize: vertical;
+      min-height: 60px;
+    }
+    .submit-feedback {
+      width: 100%;
+      padding: 10px;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: bold;
+    }
+    .submit-feedback:hover {
+      background: #45a049;
+    }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <h1>🎯 CV AutoFill <span class="rainbow-badge">RAINBOW VIP</span></h1>
+    
+    <div class="section">
+      <label for="cvFile">Wczytaj CV (JSON):</label>
+      <input type="file" id="cvFile" accept=".json">
+      <div id="cvInfo" class="cv-info" style="display: none;">
+        CV załadowane: <span id="cvName"></span>
+      </div>
+      <div id="cvHelp" class="cv-info" style="background:#fff3cd;border:1px solid #ffc107;">
+        <a href="https://maciejjankowski.com/cv-to-form/instrukcja.html" target="_blank" style="color:#856404;text-decoration:underline;">Jak przygotować CV w formacie JSON?</a>
+      </div>
+    </div>
+    
+    <button id="toggleOptions" class="options-toggle">⚙️ Opcje dodatkowe</button>
+    
+    <div id="advancedOptions">
+      <div class="section">
+        <label for="employmentType">Forma zatrudnienia:</label>
+        <select id="employmentType">
+          <option value="B2B">B2B</option>
+          <option value="UoP">Umowa o pracę</option>
+          <option value="UZ">Umowa zlecenie</option>
+        </select>
+      </div>
+
+      <div class="section">
+        <label for="location">Lokalizacja:</label>
+        <input type="text" id="location" placeholder="np. Warszawa, Remote" value="Warszawa">
+      </div>
+
+      <div class="section">
+        <label for="expectedSalary">Oczekiwane wynagrodzenie (PLN netto):</label>
+        <input type="number" id="expectedSalary" placeholder="np. 21000">
+      </div>
+
+      <div class="section">
+        <label for="availabilityDate">Dostępność:</label>
+        <input type="text" id="availabilityDate" placeholder="np. Natychmiast, 1 miesiąc" value="Natychmiast">
+      </div>
+
+      <div class="section">
+        <label for="coverLetter">List motywacyjny (opcjonalny):</label>
+        <textarea id="coverLetter" placeholder="Wpisz swój list motywacyjny..."></textarea>
+      </div>
+    </div>
+    
+    <button id="fillButton" disabled>Wypełnij formularz</button>
+
+    <div id="status"></div>
+
+    <!-- Reset button for testing (clears activation) -->
+    <button id="resetButton" style="background:#666;font-size:11px;padding:5px 10px;margin-top:5px;">Reset aktywacji (test)</button>
+
+    <!-- Upsell Banner (shows after successful fills) -->
+    <div id="upsellBanner">
+      <button class="dismiss" id="dismissBanner">×</button>
+      <h3>🚀 Szukasz pracy mądrzej?</h3>
+      <p>Formularz wypełniony! Ale to dopiero początek. Odkryj swoje supermoce zawodowe i znajdź pracę dopasowaną do Ciebie.</p>
+      <a href="https://evil1.org/superh/" target="_blank" class="cta-btn">SUPERH Assessment →</a>
+      <div class="email-form">
+        <form id="emailForm" action="https://formspree.io/f/xqarldvz" method="POST">
+          <input type="email" name="email" placeholder="Twój email na więcej" required>
+          <button type="submit">OK</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Support/Payment Section -->
+    <div id="supportSection">
+      <h4>☕ Wesprzyj rozwój</h4>
+      <a href="https://maciejjankowski.com/cv-to-form/checkout.html" target="_blank" class="pay-btn" style="display:block;text-align:center;text-decoration:none;margin-bottom:10px;">💳 Wesprzyj projekt</a>
+      <div class="activation-section" style="border-top:none;margin-top:0;padding-top:0;">
+        <p style="font-size:11px;color:#666;margin:0 0 5px 0;">Masz kod aktywacyjny?</p>
+        <div style="display:flex;">
+          <input type="text" id="activationCode" placeholder="Wpisz kod...">
+          <button id="activateBtn">Aktywuj</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Discord Section (hidden until payment >= 50 PLN) -->
+    <div id="discordSection">
+      <a href="https://discord.gg/6qTYZK8ARt" target="_blank">🎮 Dołącz do społeczności Discord</a>
+      <p>Pomoc techniczna, nowe mappery, early access</p>
+    </div>
+
+    <!-- Feedback Section -->
+    <div id="feedbackSection">
+      <a href="https://discord.gg/6qTYZK8ARt" target="_blank" class="feedback-toggle" style="display:block;text-align:center;text-decoration:none;">🐛 Zgłoś błąd / Poproś o nowy formularz</a>
+    </div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>
