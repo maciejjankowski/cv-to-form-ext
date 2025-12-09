@@ -380,7 +380,4 @@ document.addEventListener("DOMContentLoaded", function() {
       }
     });
   });
-
-  // Init avatar
-  updateAvatar(36);
 });
