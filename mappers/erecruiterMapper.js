@@ -45,10 +45,12 @@ function mapCVToERecruiterForm(cvData, options = {}) {
     country: basics.location?.country || 'Polska',
     city: basics.location?.city || basics.location?.address || '',
     linkedInUrl: linkedInProfile?.url || '',
-    salaryExpectations: options.expectedSalary || '',
-    availability: options.availabilityDate || 'Natychmiast',
+    availability: basics['x-availability'] || options.availabilityDate || 'natychmiast',
+    preferredContractType: basics['x-preferredContractType'] || options.contractType || 'B2B',
+    expectedSalary: basics['x-expectedSalary'] || options.expectedSalary || '',
+    polishLevel: basics['x-languageSkills']?.polish || options.polishLevel || 'język ojczysty',
+    englishLevel: basics['x-languageSkills']?.english || options.englishLevel || 'dobra',
     experienceYears: calculateExperienceYears(),
-    englishLevel: options.englishLevel || '',
     agreeToDataProcessing: true,
     agreeToFutureRecruitment: options.agreeToFutureRecruitment !== undefined ? options.agreeToFutureRecruitment : true,
   };
@@ -60,14 +62,15 @@ function mapCVToERecruiterForm(cvData, options = {}) {
  * Detects eRecruiter form and returns field selectors
  */
 function detectERecruiterForm() {
-  // Check if we're on erecruiter.pl domain
-  if (!window.location.hostname.includes('erecruiter.pl')) {
-    return null;
-  }
-  
-  // Look for the main form
-  const form = document.querySelector('form');
-  if (!form) return null;
+  try {
+    // Check if we're on erecruiter.pl domain
+    if (!window.location.hostname.includes('erecruiter.pl')) {
+      return null;
+    }
+    
+    // Look for the main form
+    const form = document.querySelector('form');
+    if (!form) return null;
   
   // Helper to find input by label text
   const findInputByLabel = (labelTexts) => {
@@ -110,14 +113,16 @@ function detectERecruiterForm() {
             form.querySelector('input[name*="city" i], input[name*="miasto" i]'),
       linkedInUrl: findInputByLabel(['linkedin', 'profil']) ||
                    form.querySelector('input[name*="linkedin" i]'),
-      salaryExpectations: findInputByLabel(['oczekiwania finansowe', 'salary', 'wynagrodzenie']) ||
-                         form.querySelector('input[name*="salary" i], textarea[name*="salary" i]'),
-      availability: findInputByLabel(['rozpocząć pracę', 'availability', 'dyspozycyjność', 'kiedy']) ||
-                   form.querySelector('select[name*="availability" i], input[name*="availability" i]'),
+      // Specific fields with direct IDs
+      availability: document.querySelector('#ctl00_DefaultContent_ctl60_lstOptions_0')?.parentElement?.parentElement,
+      contractType: document.querySelector('#ctl00_DefaultContent_ctl61_dlstOptions'),
+      salaryExpectations: document.querySelector('#ctl00_DefaultContent_ctl62_tbText') ||
+                         findInputByLabel(['oczekiwania finansowe', 'salary', 'wynagrodzenie']),
+      polishLevel: document.querySelector('#ctl00_DefaultContent_ctl63_dlstOptions'),
+      englishLevel: document.querySelector('#ctl00_DefaultContent_ctl64_dlstOptions') ||
+                   findInputByLabel(['język angielski', 'english']),
       experienceYears: findInputByLabel(['lat doświadczenia', 'years', 'experience']) ||
                       form.querySelector('select[name*="experience" i], input[name*="experience" i]'),
-      englishLevel: findInputByLabel(['język angielski', 'english']) ||
-                   form.querySelector('select[name*="english" i], select[name*="angielski" i]'),
       cvFile: form.querySelector('input[type="file"]'),
       // Find checkboxes
       dataProcessingConsent: Array.from(form.querySelectorAll('input[type="checkbox"]')).find(cb => {
@@ -131,39 +136,44 @@ function detectERecruiterForm() {
       }),
     }
   };
+  } catch (error) {
+    console.error('Error detecting eRecruiter form:', error);
+    return null;
+  }
 }
 
 /**
  * Fills the eRecruiter form with CV data
  */
 async function fillERecruiterForm(cvData, options = {}) {
-  const detected = detectERecruiterForm();
-  if (!detected) {
-    console.log('eRecruiter form not found on this page');
-    return false;
-  }
-  
-  const formData = mapCVToERecruiterForm(cvData, options);
-  const fields = detected.fields;
-  
-  console.log('Filling eRecruiter form with data:', formData);
-  console.log('Detected fields:', fields);
-  
-  // Helper to add delay
-  const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-  
-  // Helper to set input value
-  const setInputValue = async (element, value, fieldName) => {
-    if (!element || !value) {
-      if (!element) console.log(`Field ${fieldName} not found`);
-      if (!value) console.log(`No value for ${fieldName}`);
+  try {
+    const detected = detectERecruiterForm();
+    if (!detected) {
+      console.log('eRecruiter form not found on this page');
       return false;
     }
     
-    console.log(`Setting ${fieldName} to:`, value);
+    const formData = mapCVToERecruiterForm(cvData, options);
+    const fields = detected.fields;
     
-    element.focus();
-    await delay(50);
+    console.log('Filling eRecruiter form with data:', formData);
+    console.log('Detected fields:', fields);
+    
+    // Helper to add delay
+    const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+    
+    // Helper to set input value
+    const setInputValue = async (element, value, fieldName) => {
+      if (!element || !value) {
+        if (!element) console.log(`Field ${fieldName} not found`);
+        if (!value) console.log(`No value for ${fieldName}`);
+        return false;
+      }
+      
+      console.log(`Setting ${fieldName} to:`, value);
+      
+      element.focus();
+      await delay(50);
     
     element.value = '';
     element.dispatchEvent(new Event('input', { bubbles: true }));
@@ -223,10 +233,28 @@ async function fillERecruiterForm(cvData, options = {}) {
   
   // Fill LinkedIn and salary
   if (await setInputValue(fields.linkedInUrl, formData.linkedInUrl, 'linkedInUrl')) filledCount++;
-  if (await setInputValue(fields.salaryExpectations, formData.salaryExpectations, 'salaryExpectations')) filledCount++;
+  if (await setInputValue(fields.salaryExpectations, formData.expectedSalary, 'salaryExpectations')) filledCount++;
   
-  // Fill availability
-  if (await setSelectValue(fields.availability, formData.availability, 'availability')) filledCount++;
+  // Fill availability (checkboxes)
+  if (fields.availability && formData.availability) {
+    const availabilityCheckboxes = document.querySelectorAll('[id^="ctl00_DefaultContent_ctl60_lstOptions_"]');
+    for (const checkbox of availabilityCheckboxes) {
+      const label = document.querySelector(`label[for="${checkbox.id}"]`);
+      if (label && label.textContent.toLowerCase().includes(formData.availability.toLowerCase())) {
+        checkbox.checked = true;
+        checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+        console.log('Checked availability:', formData.availability);
+        filledCount++;
+        break;
+      }
+    }
+  }
+  
+  // Fill contract type
+  if (await setSelectValue(fields.contractType, formData.preferredContractType, 'contractType')) filledCount++;
+  
+  // Fill Polish level
+  if (await setSelectValue(fields.polishLevel, formData.polishLevel, 'polishLevel')) filledCount++;
   
   // Fill experience years
   if (fields.experienceYears) {
@@ -243,33 +271,53 @@ async function fillERecruiterForm(cvData, options = {}) {
     filledCount++;
   }
   
-  // Fill English level if provided
+    // Fill English level if provided
   if (formData.englishLevel && await setSelectValue(fields.englishLevel, formData.englishLevel, 'englishLevel')) {
     filledCount++;
   }
   
-  // Check consent checkbox (required)
-  if (fields.dataProcessingConsent && !fields.dataProcessingConsent.checked) {
-    fields.dataProcessingConsent.click();
-    await delay(50);
+  // Handle consents - find all consent checkboxes
+  const consentCheckboxes = [
+    document.querySelector('#ctl00_DefaultContent_rptAllConsents_ctl00_cbxConsent'),
+    document.querySelector('#ctl00_DefaultContent_rptAllConsents_ctl01_cbxConsent')
+  ];
+  
+  for (const checkbox of consentCheckboxes) {
+    if (checkbox) {
+      checkbox.checked = true;
+      checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+      await delay(100);
+      const label = document.querySelector(`label[for="${checkbox.id}"]`);
+      console.log('Checked consent:', label?.textContent?.substring(0, 50) + '...');
+      filledCount++;
+    }
+  }
+  
+  // Also check any other consent checkboxes found generically
+  if (fields.dataProcessingConsent && formData.agreeToDataProcessing) {
+    fields.dataProcessingConsent.checked = true;
+    fields.dataProcessingConsent.dispatchEvent(new Event('change', { bubbles: true }));
     console.log('Checked data processing consent');
     filledCount++;
   }
   
-  // Check future recruitment consent (optional)
-  if (fields.futureRecruitmentConsent && formData.agreeToFutureRecruitment && !fields.futureRecruitmentConsent.checked) {
-    fields.futureRecruitmentConsent.click();
-    await delay(50);
+  if (fields.futureRecruitmentConsent && formData.agreeToFutureRecruitment) {
+    fields.futureRecruitmentConsent.checked = true;
+    fields.futureRecruitmentConsent.dispatchEvent(new Event('change', { bubbles: true }));
     console.log('Checked future recruitment consent');
     filledCount++;
   }
   
-  console.log(`eRecruiter form filled successfully - ${filledCount} fields updated`);
-  
-  // Note about CV file upload
-  if (fields.cvFile) {
-    console.log('Note: CV file upload field detected but must be filled manually');
+    console.log(`eRecruiter form filled successfully - ${filledCount} fields updated`);
+    
+    // Note about CV file upload
+    if (fields.cvFile) {
+      console.log('Note: CV file upload field detected but must be filled manually');
+    }
+    
+    return filledCount > 0;
+  } catch (error) {
+    console.error('Error filling eRecruiter form:', error);
+    return false;
   }
-  
-  return filledCount > 0;
 }

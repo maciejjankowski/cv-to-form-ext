@@ -15,9 +15,10 @@ document.addEventListener("DOMContentLoaded", function () {
   const upsellBanner = document.getElementById("upsellBanner");
   const dismissBanner = document.getElementById("dismissBanner");
   const emailForm = document.getElementById("emailForm");
+  const resetFilledFormsButton = document.getElementById("resetFilledForms");
   
   // Load saved CV and settings from storage
-  chrome.storage.local.get(["cvData", "employmentType", "location", "expectedSalary", "availabilityDate", "coverLetter", "fillCount", "bannerDismissed"], function (result) {
+  chrome.storage.local.get(["cvData", "employmentType", "location", "expectedSalary", "availabilityDate", "coverLetter", "fillCount", "bannerDismissed", "autoFillEnabled"], function (result) {
     if (result.cvData) {
       cvData = result.cvData;
       showCVLoaded(cvData.basics?.name || "CV");
@@ -26,6 +27,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Load fill count
     fillCount = result.fillCount || 0;
+
+    // Load auto-fill setting (default to true)
+    const autoFillEnabled = result.autoFillEnabled !== false; // Default to true
+    document.getElementById("autoFillEnabled").checked = autoFillEnabled;
 
     // Restore saved form values
     if (result.employmentType) {
@@ -82,6 +87,7 @@ document.addEventListener("DOMContentLoaded", function () {
       expectedSalary: document.getElementById("expectedSalary").value,
       availabilityDate: document.getElementById("availabilityDate").value,
       coverLetter: document.getElementById("coverLetter").value,
+      autoFillEnabled: document.getElementById("autoFillEnabled").checked,
     });
   };
 
@@ -90,6 +96,7 @@ document.addEventListener("DOMContentLoaded", function () {
   document.getElementById("expectedSalary").addEventListener("input", saveOptions);
   document.getElementById("availabilityDate").addEventListener("input", saveOptions);
   document.getElementById("coverLetter").addEventListener("input", saveOptions);
+  document.getElementById("autoFillEnabled").addEventListener("change", saveOptions);
   
   // Handle CV file upload
   cvFileInput.addEventListener("change", function (event) {
@@ -231,6 +238,29 @@ document.addEventListener("DOMContentLoaded", function () {
         `;
         showStatus("Aktywacja wyczyszczona. Przeładuj rozszerzenie.", "info");
       });
+    }
+  });
+  
+  // Handle reset filled forms memory button
+  resetFilledFormsButton.addEventListener("click", function () {
+    if (confirm("Wyczyścić pamięć wypełnionych formularzy? Rozszerzenie będzie mogło ponownie wypełniać te same formularze.")) {
+      // Clear sessionStorage
+      for (let i = sessionStorage.length - 1; i >= 0; i--) {
+        const key = sessionStorage.key(i);
+        if (key && key.startsWith('cvAutoFill_')) {
+          sessionStorage.removeItem(key);
+        }
+      }
+      
+      // Clear localStorage
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const key = localStorage.key(i);
+        if (key && (key.startsWith('cvAutoFill_') || key.endsWith('_time'))) {
+          localStorage.removeItem(key);
+        }
+      }
+      
+      showStatus("Pamięć wypełnionych formularzy wyczyszczona!", "success");
     }
   });
   

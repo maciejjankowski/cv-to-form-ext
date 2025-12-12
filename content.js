@@ -64,16 +64,16 @@ function createMiniConfetti(element) {
   const centerX = rect.left + (rect.width || 100) / 2;
   const centerY = rect.top + (rect.height || 30) / 2;
 
-  // Create container if not exists
-  let container = document.getElementById('cv-confetti-container');
-  if (!container) {
-    container = document.createElement('div');
-    container.id = 'cv-confetti-container';
-    container.className = 'cv-confetti-container';
-    document.body.appendChild(container);
-  }
-
-  // Create 6-8 small confetti pieces (subtle effect)
+      // Create container if not exists
+      let container = document.getElementById('cv-confetti-container');
+      if (!container) {
+        container = document.createElement('div');
+        container.id = 'cv-confetti-container';
+        container.className = 'cv-confetti-container';
+        if (document.body) {
+          document.body.appendChild(container);
+        }
+      }  // Create 6-8 small confetti pieces (subtle effect)
   const count = Math.floor(Math.random() * 3) + 6;
   for (let i = 0; i < count; i++) {
     const confetti = document.createElement('div');
@@ -151,7 +151,9 @@ function createConfettiAtElement(element) {
     container = document.createElement('div');
     container.id = 'cv-confetti-container';
     container.className = 'cv-confetti-container';
-    document.body.appendChild(container);
+    if (document.body) {
+      document.body.appendChild(container);
+    }
     console.log('🎊 Created confetti container');
   }
 
@@ -230,7 +232,9 @@ function injectRainbowCSS() {
   const style = document.createElement('style');
   style.id = 'cv-autofill-rainbow-styles';
   style.textContent = RAINBOW_CSS;
-  document.head.appendChild(style);
+  if (document.head) {
+    document.head.appendChild(style);
+  }
 }
 
 function applyRainbowToField(field) {
@@ -316,12 +320,42 @@ try {
 // Listen for messages from popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'fillForm') {
-    try {
-      const cvData = request.cvData;
-      const options = request.options || {};
-      
-      // Try to detect and fill SOLID.jobs form
-      const solidJobsDetected = detectSolidJobsForm();
+    // Check if already completed to prevent loops
+    const pageKey = 'cvAutoFill_' + window.location.href;
+    const lastFillTime = localStorage.getItem(pageKey + '_time');
+    const now = Date.now();
+    const recentlyFilled = lastFillTime && (now - parseInt(lastFillTime)) < 30000;
+
+    if (window.cvAutoFillCompleted === pageKey || sessionStorage.getItem(pageKey) || recentlyFilled) {
+      console.log('CV AutoFill: Form already filled, skipping manual trigger');
+      sendResponse({
+        success: false,
+        message: 'Formularz został już wypełniony na tej stronie.',
+        formType: 'already_filled'
+      });
+      return true;
+    }
+
+    // Check if auto-fill is enabled for manual triggers too
+    chrome.storage.local.get(['autoFillEnabled'], function(data) {
+      const autoFillEnabled = data.autoFillEnabled !== false;
+      if (!autoFillEnabled) {
+        console.log('CV AutoFill: Auto-fill is disabled by user');
+        sendResponse({
+          success: false,
+          message: 'Automatyczne wypełnianie jest wyłączone. Włącz je w opcjach rozszerzenia.',
+          formType: 'disabled'
+        });
+        return true;
+      }
+
+      // Continue with form filling
+      try {
+        const cvData = request.cvData;
+        const options = request.options || {};
+        
+        // Try to detect and fill SOLID.jobs form
+        const solidJobsDetected = detectSolidJobsForm();
       
       // Try to detect Traffit form
       const traffitDetected = detectTraffitForm();
@@ -338,6 +372,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       const leverDetected = detectLeverForm();
       // Try to detect Workday form
       const workdayDetected = detectWorkdayForm();
+      // Try to detect Element App form
+      const elementAppDetected = detectElementAppForm();
       const bamboohrDetected = detectBambooHRForm();
 
       if (solidJobsDetected) {
@@ -432,6 +468,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           message: success ? 'Formularz Lever wypełniony!' : 'Nie udało się wypełnić formularza.',
           formType: 'Lever'
         });
+      }).catch(error => {
+        console.error('Error filling Lever form:', error);
+        sendResponse({
+          success: false,
+          message: 'Błąd podczas wypełniania: ' + error.message,
+          formType: 'Lever'
+        });
       });
       } else if (workdayDetected) {
         // Handle Workday form
@@ -443,6 +486,18 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           message: 'Workday form filled!',
           formType: 'Workday'
         });
+      } else if (elementAppDetected) {
+        // Handle Element App form
+        const success = fillElementAppForm(cvData, options);
+        if (success) {
+          celebrateFilledFields(); // 🎉 Mini confetti for all
+          applyRainbowToFilledFields(); // 🌈 Rainbow VIP
+        }
+        sendResponse({
+          success: success,
+          message: success ? 'Element App form filled!' : 'Could not fill Element App form.',
+          formType: 'ElementApp'
+        });
       } else if (bamboohrDetected) {
         // Handle BambooHR form
         fillBambooHRForm(cvData, options).then(success => {
@@ -453,6 +508,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           sendResponse({
             success: success,
             message: success ? 'Formularz BambooHR wypełniony!' : 'Nie udało się wypełnić formularza.',
+            formType: 'BambooHR'
+          });
+        }).catch(error => {
+          console.error('Error filling BambooHR form:', error);
+          sendResponse({
+            success: false,
+            message: 'Błąd podczas wypełniania: ' + error.message,
             formType: 'BambooHR'
           });
         });
@@ -472,6 +534,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       } catch (_) {}
       return true;
     }
+    }); // Close chrome.storage.local.get callback
   }
   
   if (request.action === 'detectForm') {
@@ -484,6 +547,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       const greenhouseDetected = detectGreenhouseForm();
       const leverDetected = detectLeverForm();
       const workdayDetected = detectWorkdayForm();
+      // Try to detect Element App form
+      const elementAppDetected = detectElementAppForm();
       const bamboohrDetected = detectBambooHRForm();
 
       if (solidJobsDetected) {
@@ -524,6 +589,8 @@ window.addEventListener('load', () => {
   const greenhouseDetected = detectGreenhouseForm();
   const leverDetected = detectLeverForm();
   const workdayDetected = detectWorkdayForm();
+      // Try to detect Element App form
+      const elementAppDetected = detectElementAppForm();
   const bamboohrDetected = detectBambooHRForm();
 
   let formType = null;
@@ -534,6 +601,7 @@ window.addEventListener('load', () => {
   else if (greenhouseDetected) formType = 'Greenhouse';
   else if (leverDetected) formType = 'Lever';
   else if (workdayDetected) formType = 'Workday';
+  else if (elementAppDetected) formType = 'ElementApp';
   else if (bamboohrDetected) formType = 'BambooHR';
 
   if (formType) {
@@ -549,21 +617,47 @@ window.addEventListener('load', () => {
 let autoFillAlreadyRan = false;
 
 async function autoFillIfReady() {
-  // Prevent running multiple times on the same page
+  // Check if this is a page reload - if so, don't auto-fill
+  const navigation = performance.getEntriesByType('navigation')[0];
+  if (navigation && navigation.type === 'reload') {
+    console.log('CV AutoFill: Page was reloaded, skipping auto-fill to prevent loops');
+    return;
+  }
+
+  // Check if we recently filled this page (within last 30 seconds)
+  const pageKey = 'cvAutoFill_' + window.location.href;
+  const lastFillTime = localStorage.getItem(pageKey + '_time');
+  const now = Date.now();
+  if (lastFillTime && (now - parseInt(lastFillTime)) < 30000) {
+    console.log('CV AutoFill: Recently filled this page, skipping to prevent loops');
+    return;
+  }
+
+  // Prevent running multiple times on the same page - more robust check
+  if (window.cvAutoFillCompleted === pageKey) {
+    console.log('CV AutoFill: Already completed on this page, skipping');
+    return;
+  }
   if (autoFillAlreadyRan) {
     console.log('CV AutoFill: Already ran on this page, skipping');
     return;
   }
 
   // Also check sessionStorage to survive minor page updates
-  const pageKey = 'cvAutoFill_' + window.location.href;
   if (sessionStorage.getItem(pageKey)) {
     console.log('CV AutoFill: Already filled this page (session), skipping');
     return;
   }
 
   // Check if CV data is available in storage
-  chrome.storage.local.get(['cvData', 'employmentType', 'location', 'expectedSalary', 'availabilityDate', 'coverLetter'], async function(data) {
+  chrome.storage.local.get(['cvData', 'employmentType', 'location', 'expectedSalary', 'availabilityDate', 'coverLetter', 'autoFillEnabled'], async function(data) {
+    // Check if auto-fill is enabled (default to true)
+    const autoFillEnabled = data.autoFillEnabled !== false;
+    if (!autoFillEnabled) {
+      console.log('CV AutoFill: Auto-fill is disabled by user');
+      return;
+    }
+
     if (!data.cvData) {
       console.log('CV AutoFill: No CV data found, skipping auto-fill');
       showNotification('CV AutoFill: Wgraj CV w rozszerzeniu aby włączyć auto-wypełnianie', 'warning');
@@ -587,6 +681,8 @@ async function autoFillIfReady() {
     const greenhouseDetected = detectGreenhouseForm();
     const leverDetected = detectLeverForm();
     const workdayDetected = detectWorkdayForm();
+      // Try to detect Element App form
+      const elementAppDetected = detectElementAppForm();
     const bamboohrDetected = detectBambooHRForm();
 
     let formType = null;
@@ -624,9 +720,11 @@ async function autoFillIfReady() {
 
       if (formType && fillResult) {
         console.log(`CV AutoFill: ${formType} form filled automatically!`);
-        // Mark as filled to prevent loops
+        // Mark as filled to prevent loops - multiple safeguards
         autoFillAlreadyRan = true;
+        window.cvAutoFillCompleted = pageKey;
         sessionStorage.setItem(pageKey, 'filled');
+        localStorage.setItem(pageKey + '_time', Date.now().toString());
 
         showNotification(`CV AutoFill: Formularz ${formType} wypełniony!`, 'success');
         // Mini confetti for everyone! 🎉
@@ -676,21 +774,57 @@ function showNotification(message, type) {
       ${message}
     </div>
   `;
-  document.body.appendChild(notification);
+  if (document.body) {
+    document.body.appendChild(notification);
+  }
 
   // Auto-hide after 4 seconds
   setTimeout(() => {
-    notification.style.transition = 'opacity 0.5s';
-    notification.style.opacity = '0';
-    setTimeout(() => notification.remove(), 500);
+    if (notification.parentNode) {
+      notification.style.transition = 'opacity 0.5s';
+      notification.style.opacity = '0';
+      setTimeout(() => {
+        try {
+          notification.remove();
+        } catch (e) {
+          console.error('Error removing notification:', e);
+        }
+      }, 500);
+    }
   }, 4000);
 }
 
 // Auto-fill when page loads (with small delay to ensure form is ready)
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => setTimeout(autoFillIfReady, 500));
-} else {
-  setTimeout(autoFillIfReady, 500);
+if (document && document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    // Double-check before scheduling
+    const pageKey = 'cvAutoFill_' + window.location.href;
+    const lastFillTime = localStorage.getItem(pageKey + '_time');
+    const now = Date.now();
+    const recentlyFilled = lastFillTime && (now - parseInt(lastFillTime)) < 30000;
+
+    // Check if auto-fill is enabled
+    chrome.storage.local.get(['autoFillEnabled'], function(data) {
+      const autoFillEnabled = data.autoFillEnabled !== false;
+      if (autoFillEnabled && !window.cvAutoFillCompleted && !sessionStorage.getItem(pageKey) && !recentlyFilled) {
+        setTimeout(autoFillIfReady, 500);
+      }
+    });
+  });
+} else if (document) {
+  // Double-check before scheduling
+  const pageKey = 'cvAutoFill_' + window.location.href;
+  const lastFillTime = localStorage.getItem(pageKey + '_time');
+  const now = Date.now();
+  const recentlyFilled = lastFillTime && (now - parseInt(lastFillTime)) < 30000;
+
+  // Check if auto-fill is enabled
+  chrome.storage.local.get(['autoFillEnabled'], function(data) {
+    const autoFillEnabled = data.autoFillEnabled !== false;
+    if (autoFillEnabled && !window.cvAutoFillCompleted && !sessionStorage.getItem(pageKey) && !recentlyFilled) {
+      setTimeout(autoFillIfReady, 500);
+    }
+  });
 }
 
 } // End of cvAutoFillLoaded check

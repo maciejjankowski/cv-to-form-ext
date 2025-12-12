@@ -2,13 +2,13 @@
   "manifest_version": 3,
   "name": "CV AutoFill",
   "version": "1.0",
-  "description": "Automatyczne wypełnianie formularzy aplikacyjnych na podstawie CV w formacie JSON.",
+  "description": "Automatyczne wype\u0142nianie formularzy aplikacyjnych na podstawie CV w formacie JSON.",
   "permissions": [
     "activeTab",
     "storage",
     "scripting"
   ],
-  "host_permissions":[
+  "host_permissions": [
     "https://*/*"
   ],
   "action": {
@@ -16,10 +16,31 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://solid.jobs/*", "https://*.traffit.com/*", "https://*.erecruiter.pl/*", "https://*.recruitify.ai/*", "https://*.greenhouse.io/*", "https://jobs.lever.co/*", "https://*.myworkdayjobs.com/*", "https://*.bamboohr.com/*", "https://*/*"],
-      "js": ["mappers/solidJobsMapper.js", "mappers/traffitMapper.js", "mappers/eRecruiterMapper.js", "mappers/recruitifyMapper.js", "mappers/greenhouseMapper.js", "mappers/leverMapper.js", "mappers/workdayMapper.js", "mappers/bamboohrMapper.js", "content.js"],
+      "matches": [
+        "https://solid.jobs/*",
+        "https://*.traffit.com/*",
+        "https://*.erecruiter.pl/*",
+        "https://*.recruitify.ai/*",
+        "https://*.greenhouse.io/*",
+        "https://jobs.lever.co/*",
+        "https://*.myworkdayjobs.com/*",
+        "https://*.bamboohr.com/*",
+        "https://*.elementapp.ai/*",
+        "https://*/*"
+      ],
+      "js": [
+        "mappers/solidJobsMapper.js",
+        "mappers/traffitMapper.js",
+        "mappers/eRecruiterMapper.js",
+        "mappers/recruitifyMapper.js",
+        "mappers/greenhouseMapper.js",
+        "mappers/leverMapper.js",
+        "mappers/workdayMapper.js",
+        "mappers/bamboohrMapper.js",
+        "mappers/elementAppMapper.js",
+        "content.js"
+      ],
       "run_at": "document_idle"
     }
   ]
 }
-
