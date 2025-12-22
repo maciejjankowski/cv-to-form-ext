@@ -179,111 +179,13 @@
       cursor: pointer;
       margin: 0;
     }
-    /* Support/Payment Section */
-    #supportSection {
-      margin-top: 15px;
-      padding: 15px;
-      background: #f8f9fa;
-      border-radius: 8px;
-      border: 1px solid #e9ecef;
-    }
-    #supportSection h4 {
-      margin: 0 0 10px 0;
-      font-size: 13px;
-      color: #333;
-    }
-    .avatar-container {
-      text-align: center;
-      margin: 15px 0;
-      position: relative;
-    }
-    .avatar {
-      font-size: 48px;
-      transition: all 0.3s ease;
-      display: inline-block;
-    }
-    .avatar.happy { transform: scale(1.1); }
-    .avatar.wink { animation: wink 0.5s ease; }
-    .rainbow {
-      display: none;
-      position: absolute;
-      top: -10px;
-      left: 50%;
-      transform: translateX(-50%);
-      font-size: 24px;
-      animation: rainbow-float 1s ease infinite;
-    }
-    .rainbow.show { display: block; }
-    @keyframes wink {
-      0%, 100% { transform: scale(1.1); }
-      50% { transform: scale(1.2) rotate(5deg); }
-    }
-    @keyframes rainbow-float {
-      0%, 100% { transform: translateX(-50%) translateY(0); }
-      50% { transform: translateX(-50%) translateY(-5px); }
-    }
-    .amount-input {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      margin: 10px 0;
-    }
-    .amount-input input {
-      width: 80px;
-      padding: 8px;
-      font-size: 18px;
-      font-weight: bold;
-      text-align: center;
-      border: 2px solid #ddd;
-      border-radius: 8px;
-      margin: 0;
-    }
-    .amount-input input:focus {
-      border-color: #4CAF50;
-      outline: none;
-    }
-    .amount-input span {
-      font-size: 14px;
-      color: #666;
-    }
-    .pay-btn {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      border: none;
-      padding: 12px 24px;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: bold;
-      cursor: pointer;
-      width: 100%;
-      margin-top: 10px;
-    }
-    .pay-btn:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-    }
-    .pay-btn:disabled {
-      background: #ccc;
-      cursor: not-allowed;
-      transform: none;
-      box-shadow: none;
-    }
-    .min-note {
-      font-size: 11px;
-      color: #999;
-      text-align: center;
-      margin-top: 5px;
-    }
     #discordSection {
-      display: none;
       margin-top: 15px;
       padding: 12px;
       background: linear-gradient(135deg, #5865F2 0%, #7289da 100%);
       border-radius: 8px;
       text-align: center;
     }
-    #discordSection.show { display: block; }
     #discordSection a {
       color: white;
       text-decoration: none;
@@ -294,30 +196,6 @@
       color: rgba(255,255,255,0.8);
       font-size: 11px;
       margin: 5px 0 0 0;
-    }
-    .activation-section {
-      margin-top: 10px;
-      padding-top: 10px;
-      border-top: 1px solid #e9ecef;
-    }
-    .activation-section input {
-      width: calc(100% - 70px);
-      padding: 6px 8px;
-      border: 1px solid #ddd;
-      border-radius: 4px 0 0 4px;
-      font-size: 12px;
-      margin: 0;
-    }
-    .activation-section button {
-      width: 60px;
-      padding: 6px 8px;
-      background: #4CAF50;
-      color: white;
-      border: none;
-      border-radius: 0 4px 4px 0;
-      font-size: 11px;
-      cursor: pointer;
-      margin: 0;
     }
     /* Rainbow mode for 369+ PLN supporters */
     @keyframes rainbow-bg {
@@ -507,9 +385,6 @@
 
     <div id="status"></div>
 
-    <!-- Reset button for testing (clears activation) -->
-    <button id="resetButton" style="background:#666;font-size:11px;padding:5px 10px;margin-top:5px;">Reset aktywacji (test)</button>
-
     <!-- Upsell Banner (shows after successful fills) -->
     <div id="upsellBanner">
       <button class="dismiss" id="dismissBanner">×</button>
@@ -524,20 +399,7 @@
       </div>
     </div>
 
-    <!-- Support/Payment Section -->
-    <div id="supportSection">
-      <h4>☕ Wesprzyj rozwój</h4>
-      <a href="https://maciejjankowski.com/cv-to-form/checkout.html" target="_blank" class="pay-btn" style="display:block;text-align:center;text-decoration:none;margin-bottom:10px;">💳 Wesprzyj projekt</a>
-      <div class="activation-section" style="border-top:none;margin-top:0;padding-top:0;">
-        <p style="font-size:11px;color:#666;margin:0 0 5px 0;">Masz kod aktywacyjny?</p>
-        <div style="display:flex;">
-          <input type="text" id="activationCode" placeholder="Wpisz kod...">
-          <button id="activateBtn">Aktywuj</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Discord Section (hidden until payment >= 50 PLN) -->
+    <!-- Discord Section -->
     <div id="discordSection">
       <a href="https://discord.gg/6qTYZK8ARt" target="_blank">🎮 Dołącz do społeczności Discord</a>
       <p>Pomoc techniczna, nowe mappery, early access</p>

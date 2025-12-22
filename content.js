@@ -320,20 +320,15 @@ try {
 // Listen for messages from popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'fillForm') {
-    // Check if already completed to prevent loops
+    // Check if already completed (for informational purposes, but still allow re-fill)
     const pageKey = 'cvAutoFill_' + window.location.href;
     const lastFillTime = localStorage.getItem(pageKey + '_time');
     const now = Date.now();
     const recentlyFilled = lastFillTime && (now - parseInt(lastFillTime)) < 30000;
+    const wasAlreadyFilled = window.cvAutoFillCompleted === pageKey || sessionStorage.getItem(pageKey) || recentlyFilled;
 
-    if (window.cvAutoFillCompleted === pageKey || sessionStorage.getItem(pageKey) || recentlyFilled) {
-      console.log('CV AutoFill: Form already filled, skipping manual trigger');
-      sendResponse({
-        success: false,
-        message: 'Formularz został już wypełniony na tej stronie.',
-        formType: 'already_filled'
-      });
-      return true;
+    if (wasAlreadyFilled) {
+      console.log('CV AutoFill: Form was already filled, but proceeding with re-fill on manual trigger');
     }
 
     // Check if auto-fill is enabled for manual triggers too
@@ -353,6 +348,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       try {
         const cvData = request.cvData;
         const options = request.options || {};
+        const refillNote = wasAlreadyFilled ? ' (ponowne wypełnienie)' : '';
         
         // Try to detect and fill SOLID.jobs form
         const solidJobsDetected = detectSolidJobsForm();
@@ -385,7 +381,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         }
         sendResponse({
           success: success,
-          message: success ? 'Formularz wypełniony pomyślnie!' : 'Nie udało się wypełnić formularza.',
+          message: success ? 'Formularz wypełniony pomyślnie!' + refillNote : 'Nie udało się wypełnić formularza.',
           formType: 'SOLID.jobs'
         });
       }).catch(error => {
@@ -405,7 +401,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         }
         sendResponse({
           success: success,
-          message: success ? 'Formularz Traffit wypełniony pomyślnie!' : 'Nie udało się wypełnić formularza.',
+          message: success ? 'Formularz Traffit wypełniony pomyślnie!' + refillNote : 'Nie udało się wypełnić formularza.',
           formType: 'Traffit'
         });
       }).catch(error => {
@@ -425,7 +421,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         }
         sendResponse({
           success: success,
-          message: success ? 'Formularz eRecruiter wypełniony pomyślnie!' : 'Nie udało się wypełnić formularza.',
+          message: success ? 'Formularz eRecruiter wypełniony pomyślnie!' + refillNote : 'Nie udało się wypełnić formularza.',
           formType: 'eRecruiter'
         });
       }).catch(error => {
@@ -443,7 +439,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       applyRainbowToFilledFields(); // 🌈 Rainbow VIP
       sendResponse({
         success: true,
-        message: 'Formularz Recruitify wypełniony!',
+        message: 'Formularz Recruitify wypełniony!' + refillNote,
         formType: 'Recruitify'
       });
       } else if (greenhouseDetected) {
@@ -453,7 +449,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       applyRainbowToFilledFields(); // 🌈 Rainbow VIP
       sendResponse({
         success: true,
-        message: 'Formularz Greenhouse wypełniony!',
+        message: 'Formularz Greenhouse wypełniony!' + refillNote,
         formType: 'Greenhouse'
       });
       } else if (leverDetected) {
@@ -465,7 +461,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         }
         sendResponse({
           success: success,
-          message: success ? 'Formularz Lever wypełniony!' : 'Nie udało się wypełnić formularza.',
+          message: success ? 'Formularz Lever wypełniony!' + refillNote : 'Nie udało się wypełnić formularza.',
           formType: 'Lever'
         });
       }).catch(error => {
@@ -483,7 +479,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         applyRainbowToFilledFields(); // 🌈 Rainbow VIP
         sendResponse({
           success: true,
-          message: 'Workday form filled!',
+          message: 'Workday form filled!' + refillNote,
           formType: 'Workday'
         });
       } else if (elementAppDetected) {
@@ -495,7 +491,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         }
         sendResponse({
           success: success,
-          message: success ? 'Element App form filled!' : 'Could not fill Element App form.',
+          message: success ? 'Element App form filled!' + refillNote : 'Could not fill Element App form.',
           formType: 'ElementApp'
         });
       } else if (bamboohrDetected) {
@@ -507,7 +503,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           }
           sendResponse({
             success: success,
-            message: success ? 'Formularz BambooHR wypełniony!' : 'Nie udało się wypełnić formularza.',
+            message: success ? 'Formularz BambooHR wypełniony!' + refillNote : 'Nie udało się wypełnić formularza.',
             formType: 'BambooHR'
           });
         }).catch(error => {
@@ -535,8 +531,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       return true;
     }
     }); // Close chrome.storage.local.get callback
+
+    return true; // Keep message port open for async response
   }
-  
+
   if (request.action === 'detectForm') {
     try {
       // Detect what kind of form is on the page

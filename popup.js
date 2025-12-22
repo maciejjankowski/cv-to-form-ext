@@ -6,7 +6,6 @@ let fillCount = 0;
 document.addEventListener("DOMContentLoaded", function () {
   const cvFileInput = document.getElementById("cvFile");
   const fillButton = document.getElementById("fillButton");
-  const resetButton = document.getElementById("resetButton");
   const toggleOptionsButton = document.getElementById("toggleOptions");
   const advancedOptions = document.getElementById("advancedOptions");
   const statusDiv = document.getElementById("status");
@@ -218,29 +217,6 @@ document.addEventListener("DOMContentLoaded", function () {
     );
   }
   
-  // Handle reset button click (for testing)
-  resetButton.addEventListener("click", function () {
-    if (confirm("Wyczyścić aktywację? (tylko do testów)")) {
-      chrome.storage.local.remove([
-        "paidAmount",
-        "activationCode",
-        "discordUnlocked",
-        "rainbowMode",
-        "fillCount",
-        "bannerDismissed",
-        "emailSubmitted"
-      ], function() {
-        document.getElementById("discordSection").classList.remove("show");
-        document.body.classList.remove("rainbow-mode");
-        document.getElementById("supportSection").innerHTML = `
-          <h4>☕ Wesprzyj rozwój + Discord VIP</h4>
-          <p style="text-align:center;color:#666;font-size:12px;">Aktywacja wyczyszczona. Przeładuj rozszerzenie.</p>
-        `;
-        showStatus("Aktywacja wyczyszczona. Przeładuj rozszerzenie.", "info");
-      });
-    }
-  });
-  
   // Handle reset filled forms memory button
   resetFilledFormsButton.addEventListener("click", function () {
     if (confirm("Wyczyścić pamięć wypełnionych formularzy? Rozszerzenie będzie mogło ponownie wypełniać te same formularze.")) {
@@ -340,74 +316,3 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 });
 
-// ========================================
-// ACTIVATION CODE
-// ========================================
-
-document.addEventListener("DOMContentLoaded", function() {
-  const activateBtn = document.getElementById("activateBtn");
-  const activationCode = document.getElementById("activationCode");
-  const discordSection = document.getElementById("discordSection");
-
-  // Check if already activated
-  chrome.storage.local.get(["paidAmount", "discordUnlocked", "rainbowMode"], function(data) {
-    if (data.discordUnlocked) {
-      discordSection.classList.add("show");
-      document.getElementById("supportSection").style.display = "none";
-    }
-    // Rainbow mode for 369+ supporters
-    if (data.rainbowMode || data.paidAmount >= 369) {
-      document.body.classList.add("rainbow-mode");
-    }
-  });
-
-  // Activate code
-  activateBtn.addEventListener("click", function() {
-    const code = activationCode.value.trim().toUpperCase();
-
-    if (!code) {
-      alert("Wpisz kod aktywacyjny!");
-      return;
-    }
-
-    // Parse code: CV{amount}-{timestamp}-{signature}
-    // Example: CV50-6756A3B2-A1B2C3D4
-    const match = code.match(/^CV(\d+)-([A-Z0-9]+)-([A-Z0-9]+)$/);
-    if (!match) {
-      alert("Nieprawidłowy format kodu!\n\nKod powinien wyglądać tak:\nCV50-6756A3B2-A1B2C3D4");
-      return;
-    }
-
-    const amount = parseInt(match[1]);
-    // Note: We trust the code format since it's sent via email after real payment
-    // Server-side signature verification ensures the code wasn't fabricated
-
-    // Store activation
-    const isRainbow = amount >= 369;
-    chrome.storage.local.set({
-      paidAmount: amount,
-      activationCode: code,
-      discordUnlocked: amount >= 50,
-      rainbowMode: isRainbow
-    }, function() {
-      // Apply rainbow mode immediately
-      if (isRainbow) {
-        document.body.classList.add("rainbow-mode");
-      }
-
-      if (amount >= 369) {
-        discordSection.classList.add("show");
-        document.getElementById("supportSection").innerHTML =
-          `<p style="color:#4CAF50;text-align:center;">✓ RAINBOW VIP! Dziękuję za ${amount} PLN 🌈</p>`;
-        alert(`🌈🎉 WOW! ${amount} PLN!\n\nJesteś RAINBOW VIP!\n\n✅ Discord odblokowany\n✅ Tęczowe pola na zawsze!`);
-      } else if (amount >= 50) {
-        discordSection.classList.add("show");
-        document.getElementById("supportSection").innerHTML =
-          `<p style="color:#4CAF50;text-align:center;">✓ Aktywowano! Dziękuję za wsparcie ${amount} PLN</p>`;
-        alert(`🎉 Dzięki za ${amount} PLN!\n\nOdblokowałeś dostęp do społeczności Discord!`);
-      } else {
-        alert(`Dzięki za ${amount} PLN!\n\nAby odblokować Discord, wpłać minimum 50 PLN.`);
-      }
-    });
-  });
-});

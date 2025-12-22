@@ -153,10 +153,17 @@ function detectTraffitForm() {
                           label.textContent.toLowerCase().includes('when are you able'));
         }),
 
-      // Salary expectations (various names)
+      // Salary expectations (various names) - search specific terms first to avoid matching "current salary"
       salaryExpectations: bySid('salary') || bySid('salary_expectations') || bySid('expected_salary') || findInputByLabelExclusive([
-        'wynagrodzenie', 'salary', 'oczekiwania finansowe', 'stawka', 'pensja',
-        'financial expectations', 'your financial'
+        'salary expectations', 'oczekiwania finansowe', 'oczekiwania wynagrodzenia',
+        'expected salary', 'financial expectations', 'your financial',
+        'wynagrodzenie', 'stawka', 'pensja'
+      ]),
+
+      // Current salary field (separate from expectations)
+      currentSalary: bySid('current_salary') || findInputByLabelExclusive([
+        'current salary', 'aktualne wynagrodzenie', 'obecne wynagrodzenie',
+        'dotychczasowe wynagrodzenie'
       ]),
 
       // Additional info / message textarea
@@ -300,6 +307,10 @@ async function fillTraffitForm(cvData, options = {}) {
   const salary = options.expectedSalary || formData.salaryExpectations;
   const salaryWithCurrency = salary ? `${salary} PLN netto` : '';
   if (await setInputValue(fields.salaryExpectations, salaryWithCurrency, 'salaryExpectations')) filledCount++;
+
+  // Fill current salary if field exists (optional - can leave empty if unknown)
+  const currentSalary = options.currentSalary || '';
+  if (currentSalary && await setInputValue(fields.currentSalary, currentSalary, 'currentSalary')) filledCount++;
 
   // Fill employment type radio button
   const employmentType = options.employmentType || 'B2B';
